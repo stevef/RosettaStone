@@ -191,6 +191,13 @@ CardDefsXmlLoader::Stats CardDefsXmlLoader::Load(std::vector<Card*>& cards,
                 const auto iter = tagByName.find(tagName);
                 if (iter == tagByName.end())
                 {
+                    // Elusive (2024 keyword, not a GameTag) is the pair below.
+                    if (tagName == "ELUSIVE" && value > 0)
+                    {
+                        card->gameTags[GameTag::CANT_BE_TARGETED_BY_SPELLS] = 1;
+                        card->gameTags[GameTag::CANT_BE_TARGETED_BY_HERO_POWERS] =
+                            1;
+                    }
                     ++stats.tagsUnnamed;
                     continue;
                 }

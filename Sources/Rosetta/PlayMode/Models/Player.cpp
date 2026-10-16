@@ -120,6 +120,16 @@ void Player::ReplaceHeroPower(HeroPower* heroPower)
 
     heroPower->SetZoneType(ZoneType::PLAY);
     m_hero->heroPower = heroPower;
+
+    // Passive hero powers (e.g. JAIL_800hp1/hp2) carry an aura or trigger.
+    if (const auto aura = heroPower->card->power.GetAura(); aura)
+    {
+        aura->Activate(heroPower);
+    }
+    if (const auto trigger = heroPower->card->power.GetTrigger(); trigger)
+    {
+        trigger->Activate(heroPower);
+    }
 }
 
 HeroPower& Player::GetHeroPower() const

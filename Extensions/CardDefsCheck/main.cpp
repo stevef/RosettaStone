@@ -1,6 +1,10 @@
 // CardDefsCheck: load CardDefs.xml, instantiate a list of card IDs, report.
 //
 //   CardDefsCheck <CardDefs.xml> <card_ids.txt>
+//   CardDefsCheck <CardDefs.xml> --dump <out.csv>
+//
+// --dump writes one CSV row per loaded card: id, dbfId, set, type, class,
+// collectible, scripted (Card::IsScripted()), cost, atk, health, name.
 //
 // card_ids.txt: one card ID per line. Prints counts; exit code 1 if any ID
 // is missing or fails to instantiate.
@@ -25,10 +29,51 @@ using namespace PlayMode;
 
 int main(int argc, char** argv)
 {
-    if (argc != 3)
+    if (argc < 3)
     {
         std::cerr << "usage: CardDefsCheck <CardDefs.xml> <card_ids.txt>\n";
         return 2;
+    }
+
+    if (std::string(argv[2]) == "--dump")
+    {
+        if (argc < 4)
+        {
+            std::cerr << "usage: CardDefsCheck <CardDefs.xml> --dump <out.csv>\n";
+            return 2;
+        }
+        Cards::SetCardDefsXmlPath(argv[1]);
+        const auto& all = Cards::GetInstance().GetAllCards();
+        std::ofstream out(argv[3]);
+        out << "id,dbfId,set,type,class,collectible,scripted,cost,atk,health,name\n";
+        const auto tag = [](const Card* c, GameTag t) {
+            const auto it = c->gameTags.find(t);
+            return it == c->gameTags.end() ? 0 : it->second;
+        };
+        for (const Card* c : all)
+        {
+            std::string name = c->name;
+            for (auto& ch : name)
+            {
+                if (ch == '"') ch = '\'';
+            }
+            out << c->id << ',' << c->dbfID << ','
+                << EnumToStr<CardSet>(
+                       static_cast<CardSet>(tag(c, GameTag::CARD_SET)))
+                << ','
+                << EnumToStr<CardType>(
+                       static_cast<CardType>(tag(c, GameTag::CARDTYPE)))
+                << ','
+                << EnumToStr<CardClass>(
+                       static_cast<CardClass>(tag(c, GameTag::CLASS)))
+                << ',' << (c->IsCollectible() ? 1 : 0) << ','
+                << (c->IsScripted() ? 1 : 0) << ',' << tag(c, GameTag::COST)
+                << ',' << tag(c, GameTag::ATK) << ','
+                << tag(c, GameTag::HEALTH) << ",\"" << name
+                << "\"\n";
+        }
+        std::cout << "wrote " << all.size() << " rows to " << argv[3] << '\n';
+        return 0;
     }
 
     std::vector<std::string> ids;

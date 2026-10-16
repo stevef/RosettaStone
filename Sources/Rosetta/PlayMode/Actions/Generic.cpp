@@ -36,6 +36,8 @@ void TakeDamageToCharacter(Playable* source, Character* target, int amount,
         {
             const SpellSchool spellSchool = spell->GetSpellSchool();
             amount += source->player->GetExtraSpellPower(spellSchool);
+            // Spell Damage on the spell itself (e.g. CATA_458e Kalec's Insight)
+            amount += spell->GetGameTag(GameTag::SPELLPOWER);
         }
 
         if (const auto value = source->player->playerAuraEffects.GetValue(

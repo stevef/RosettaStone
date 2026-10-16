@@ -328,6 +328,8 @@ int Character::TakeDamage(Playable* source, int damage)
     }
 
     SetDamage(GetDamage() + amount);
+    SetGameTag(GameTag::LAST_AFFECTED_BY,
+               source->GetGameTag(GameTag::ENTITY_ID));
 
     if (minion && !minion->isDestroyed)
     {

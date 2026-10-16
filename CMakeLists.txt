@@ -56,6 +56,7 @@ add_subdirectory(Tests/UnitTests)
 add_subdirectory(Extensions/RosettaConsole)
 add_subdirectory(Extensions/RosettaTool)
 add_subdirectory(Extensions/CardDefsCheck)
+add_subdirectory(Extensions/FidelitySlice)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Builds/setup.py.in ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
 

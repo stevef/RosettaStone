@@ -31,6 +31,15 @@
 #include <Rosetta/PlayMode/Zones/HandZone.hpp>
 #include <Rosetta/PlayMode/Zones/SecretZone.hpp>
 
+// Tests for cards that exist only in CardDefs.xml (2025-26 sets) bail out in
+// cards.json mode instead of failing on Cards::FindCardByName.
+#define REQUIRE_CARDDEFS_XML()                                         \
+    if (RosettaStone::PlayMode::Cards::GetCardDefsXmlPath().empty())   \
+    {                                                                  \
+        MESSAGE("skipped: needs ROSETTA_CARDDEFS_XML");                \
+        return;                                                        \
+    }
+
 using namespace RosettaStone;
 using namespace PlayMode;
 using namespace PlayerTasks;

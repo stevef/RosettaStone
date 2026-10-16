@@ -24,7 +24,9 @@ constexpr int DECK_CODE_VERSION = 1;
 const std::string INVALID_CARD_ID = "INVALID";
 
 //! Specifies which card sets combine into the STANDARD set.
-constexpr std::array<CardSet, 7> STANDARD_CARD_SETS = {
+// The 2025-26 sets below load only from CardDefs.xml (Cards::SetCardDefsXmlPath).
+// The 2022 sets are kept so the cards.json tests keep working.
+constexpr std::array<CardSet, 14> STANDARD_CARD_SETS = {
     CardSet::CORE,                     // Core, 2022
     CardSet::THE_BARRENS,              // Forged in the Barrens, 2021
     CardSet::STORMWIND,                // United in Stormwind, 2021
@@ -32,10 +34,17 @@ constexpr std::array<CardSet, 7> STANDARD_CARD_SETS = {
     CardSet::THE_SUNKEN_CITY,          // Voyage to the Sunken City, 2022
     CardSet::REVENDRETH,               // Murder at Castle Nathria, 2022
     CardSet::RETURN_OF_THE_LICH_KING,  // March of the Lich King, 2022
+    CardSet::EVENT,                    // Event cards, 2025-26 (CardDefs.xml only)
+    CardSet::EMERALD_DREAM,            // Into the Emerald Dream, 2025
+    CardSet::THE_LOST_CITY,            // The Lost City of Un'Goro, 2025
+    CardSet::TIME_TRAVEL,              // Caverns of Time, 2025
+    CardSet::CATACLYSM,                // Cataclysm, 2026
+    CardSet::ESCAPEFROM_VIOLET_HOLD,   // Escape from Violet Hold, 2026
+    CardSet::BE,                       // Reign of the Black Empire, 2026
 };
 
 //! Specifies which card sets combine into the WILD set.
-constexpr std::array<CardSet, 31> WILD_CARD_SETS = {
+constexpr std::array<CardSet, 38> WILD_CARD_SETS = {
     CardSet::EXPERT1,                  // Classic, 2014
     CardSet::LEGACY,                   // Legacy, 2021
     CardSet::NAXX,                     // Curse of Naxxramas, 2014
@@ -67,6 +76,13 @@ constexpr std::array<CardSet, 31> WILD_CARD_SETS = {
     CardSet::REVENDRETH,               // Murder at Castle Nathria, 2022
     CardSet::RETURN_OF_THE_LICH_KING,  // March of the Lich King, 2022
     CardSet::PLACEHOLDER_202204,  // Placeholder between 2020.04 and 2022.04
+    CardSet::EVENT,                    // Event cards, 2025-26 (CardDefs.xml only)
+    CardSet::EMERALD_DREAM,            // Into the Emerald Dream, 2025
+    CardSet::THE_LOST_CITY,            // The Lost City of Un'Goro, 2025
+    CardSet::TIME_TRAVEL,              // Caverns of Time, 2025
+    CardSet::CATACLYSM,                // Cataclysm, 2026
+    CardSet::ESCAPEFROM_VIOLET_HOLD,   // Escape from Violet Hold, 2026
+    CardSet::BE,                       // Reign of the Black Empire, 2026
 };
 
 //! Specifies which card sets combine into the CLASSIC set.
