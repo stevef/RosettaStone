@@ -448,6 +448,11 @@ bool Card::IsCollectible() const
     return static_cast<bool>(gameTags.at(GameTag::COLLECTIBLE));
 }
 
+bool Card::IsScripted() const
+{
+    return scripted;
+}
+
 bool Card::IsStandardSet() const
 {
     for (auto& cardSet : STANDARD_CARD_SETS)

@@ -92,14 +92,17 @@ CardDefs& CardDefs::GetInstance()
 
 CardDef CardDefs::FindCardDefByID(const std::string_view& id)
 {
-    for (auto& data : m_data)
-    {
-        if (data.first == id)
-        {
-            return data.second;
-        }
-    }
+    const auto iter = m_data.find(std::string(id));
+    return iter == m_data.end() ? CardDef() : iter->second;
+}
 
-    return CardDef();
+bool CardDefs::HasCardDef(const std::string_view& id)
+{
+    return m_data.contains(std::string(id));
+}
+
+std::size_t CardDefs::Count()
+{
+    return m_data.size();
 }
 }  // namespace RosettaStone::PlayMode

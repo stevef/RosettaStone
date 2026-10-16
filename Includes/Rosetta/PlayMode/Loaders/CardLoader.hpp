@@ -26,6 +26,12 @@ class CardLoader
     //! Loads card data from cards.json.
     //! \param cards Data storage to store added cards with power.
     static void Load(std::vector<Card*>& cards);
+
+    //! Sets the game tags the engine derives from card text
+    //! (Spellburst, Dormant turns, Tradeable, Questline, Infused).
+    //! Shared with CardDefsXmlLoader.
+    //! \param card The card whose text has been set.
+    static void ApplyTextTags(Card* card);
 };
 }  // namespace RosettaStone::PlayMode
 

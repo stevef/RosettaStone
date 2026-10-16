@@ -14,6 +14,14 @@ void InternalCardLoader::Load(const std::vector<Card*>& cards)
 {
     for (const auto& card : cards)
     {
+        card->scripted = CardDefs::GetInstance().HasCardDef(card->id);
+        if (!card->scripted)
+        {
+            // Vanilla fallback: no power, no play requirements. Keep whatever
+            // the card data loader set. Query with Card::IsScripted().
+            continue;
+        }
+
         const auto cardDef = CardDefs::GetInstance().FindCardDefByID(card->id);
 
         card->power = cardDef.power;

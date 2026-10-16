@@ -57,6 +57,16 @@ class Cards
     //! \return An instance of Cards class.
     static Cards& GetInstance();
 
+    //! Sets the CardDefs.xml to load instead of cards.json. Must be called
+    //! before the first GetInstance(). Defaults to the ROSETTA_CARDDEFS_XML
+    //! environment variable; empty means cards.json.
+    //! \param path The path of CardDefs.xml.
+    static void SetCardDefsXmlPath(std::string path);
+
+    //! Returns the CardDefs.xml path in use, or empty for cards.json.
+    //! \return The CardDefs.xml path in use.
+    static const std::string& GetCardDefsXmlPath();
+
     //! Returns a list of all cards.
     //! \return A list of all cards.
     static const std::vector<Card*>& GetAllCards();
@@ -196,6 +206,7 @@ class Cards
     static std::vector<Card*> m_basicTotems;
     static std::vector<Card*> m_lackeys;
     static std::vector<Card*> m_poisons;
+    static std::string m_cardDefsXmlPath;
 };
 }  // namespace RosettaStone::PlayMode
 

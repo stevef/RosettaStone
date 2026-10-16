@@ -29,6 +29,7 @@ include_directories(Extensions/RosettaPython/Includes)
 find_package(doctest CONFIG REQUIRED)
 find_package(effolkronium_random CONFIG REQUIRED)
 find_package(lyra CONFIG REQUIRED)
+find_package(LibXml2 REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
@@ -54,6 +55,7 @@ add_subdirectory(Sources/Rosetta)
 add_subdirectory(Tests/UnitTests)
 add_subdirectory(Extensions/RosettaConsole)
 add_subdirectory(Extensions/RosettaTool)
+add_subdirectory(Extensions/CardDefsCheck)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Builds/setup.py.in ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
 

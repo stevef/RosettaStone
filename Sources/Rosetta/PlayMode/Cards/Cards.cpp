@@ -7,8 +7,11 @@
 #include <Rosetta/Common/Constants.hpp>
 #include <Rosetta/PlayMode/Cards/Card.hpp>
 #include <Rosetta/PlayMode/Cards/Cards.hpp>
+#include <Rosetta/PlayMode/Loaders/CardDefsXmlLoader.hpp>
 #include <Rosetta/PlayMode/Loaders/CardLoader.hpp>
 #include <Rosetta/PlayMode/Loaders/InternalCardLoader.hpp>
+
+#include <cstdlib>
 
 namespace RosettaStone::PlayMode
 {
@@ -30,12 +33,23 @@ std::vector<Card*> Cards::m_allClassicCards;
 std::vector<Card*> Cards::m_basicTotems;
 std::vector<Card*> Cards::m_lackeys;
 std::vector<Card*> Cards::m_poisons;
+std::string Cards::m_cardDefsXmlPath = [] {
+    const char* env = std::getenv("ROSETTA_CARDDEFS_XML");
+    return std::string(env ? env : "");
+}();
 
 Cards::Cards()
 {
     m_cards.reserve(NUM_PLAY_MODE_CARDS);
 
-    CardLoader::Load(m_cards);
+    if (m_cardDefsXmlPath.empty())
+    {
+        CardLoader::Load(m_cards);
+    }
+    else
+    {
+        CardDefsXmlLoader::Load(m_cards, m_cardDefsXmlPath);
+    }
     InternalCardLoader::Load(m_cards);
 
     for (Card* card : m_cards)
@@ -51,11 +65,16 @@ Cards::Cards()
                                    ? static_cast<int>(card->GetCardClass()) - 5
                                    : static_cast<int>(card->GetCardClass()) - 2;
 
+        // Death Knight (CardClass::DEATHKNIGHT = 1) has no per-class list
+        const bool hasClassList = card->GetCardClass() != CardClass::NEUTRAL &&
+                                  cardClass >= 0 &&
+                                  cardClass < NUM_PLAYER_CLASS;
+
         if (card->IsCollectible())
         {
             if (card->IsStandardSet())
             {
-                if (card->GetCardClass() != CardClass::NEUTRAL)
+                if (hasClassList)
                 {
                     m_standardCards[cardClass].emplace_back(card);
                 }
@@ -64,7 +83,7 @@ Cards::Cards()
 
             if (card->IsWildSet())
             {
-                if (card->GetCardClass() != CardClass::NEUTRAL)
+                if (hasClassList)
                 {
                     m_wildCards[cardClass].emplace_back(card);
                 }
@@ -109,6 +128,16 @@ Cards& Cards::GetInstance()
 {
     static Cards instance;
     return instance;
+}
+
+void Cards::SetCardDefsXmlPath(std::string path)
+{
+    m_cardDefsXmlPath = std::move(path);
+}
+
+const std::string& Cards::GetCardDefsXmlPath()
+{
+    return m_cardDefsXmlPath;
 }
 
 const std::vector<Card*>& Cards::GetAllCards()

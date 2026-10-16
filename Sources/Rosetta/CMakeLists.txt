@@ -73,6 +73,7 @@ target_link_libraries(${target}
     ${DEFAULT_LINKER_OPTIONS}
     effolkronium_random
     nlohmann_json::nlohmann_json
+    LibXml2::LibXml2
 
     INTERFACE
 )

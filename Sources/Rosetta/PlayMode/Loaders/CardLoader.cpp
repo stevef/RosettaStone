@@ -28,14 +28,6 @@ void CardLoader::Load(std::vector<Card*>& cards)
 
     cards.reserve(j.size());
 
-    std::regex spellburstRegex("([<b>]*<b>Spellburst[</b>]*:</b>)");
-    std::regex dormantRegex("<b>Dormant</b>");
-    std::regex dormantTurnRegex("for ([[:digit:]]) turns");
-    std::regex tradeableRegex("<b>Tradeable[.]*</b>");
-    std::regex questlineRegex("<b>Questline:[ ]*</b>");
-    std::regex infusedRegex("<b>.*Infused.*</b>");
-    std::smatch values;
-
     for (auto& cardData : j)
     {
         int cardSet = cardData["set"].is_null()
@@ -222,32 +214,7 @@ void CardLoader::Load(std::vector<Card*>& cards)
             card->gameTags[GameTag::OVERLOAD] = overload;
         }
 
-        if (std::regex_search(text, values, spellburstRegex))
-        {
-            card->gameTags[GameTag::SPELLBURST] = 1;
-        }
-        if (std::regex_search(text, values, dormantRegex))
-        {
-            card->gameTags[GameTag::DORMANT] = 1;
-
-            if (std::regex_search(text, values, dormantTurnRegex))
-            {
-                card->gameTags[GameTag::TAG_SCRIPT_DATA_NUM_1] =
-                    std::stoi(values[1].str());
-            }
-        }
-        if (std::regex_search(text, values, tradeableRegex))
-        {
-            card->gameTags[GameTag::TRADEABLE] = 1;
-        }
-        if (std::regex_search(text, values, questlineRegex))
-        {
-            card->gameTags[GameTag::QUESTLINE] = 1;
-        }
-        if (std::regex_search(text, values, infusedRegex))
-        {
-            card->gameTags[GameTag::INFUSED] = 1;
-        }
+        ApplyTextTags(card.get());
 
         // NOTE: Runic Carvings (SCH_612) has GameTag::OVERLOAD
         if (dbfID == 59542)
@@ -259,5 +226,50 @@ void CardLoader::Load(std::vector<Card*>& cards)
     }
 
     cardFile.close();
+}
+
+void CardLoader::ApplyTextTags(Card* card)
+{
+    if (card->text.find("<b>") == std::string::npos)
+    {
+        return;  // every pattern below needs a <b> tag
+    }
+
+    static const std::regex spellburstRegex(
+        "([<b>]*<b>Spellburst[</b>]*:</b>)");
+    static const std::regex dormantRegex("<b>Dormant</b>");
+    static const std::regex dormantTurnRegex("for ([[:digit:]]) turns");
+    static const std::regex tradeableRegex("<b>Tradeable[.]*</b>");
+    static const std::regex questlineRegex("<b>Questline:[ ]*</b>");
+    static const std::regex infusedRegex("<b>.*Infused.*</b>");
+    std::smatch values;
+    const std::string& text = card->text;
+
+    if (std::regex_search(text, values, spellburstRegex))
+    {
+        card->gameTags[GameTag::SPELLBURST] = 1;
+    }
+    if (std::regex_search(text, values, dormantRegex))
+    {
+        card->gameTags[GameTag::DORMANT] = 1;
+
+        if (std::regex_search(text, values, dormantTurnRegex))
+        {
+            card->gameTags[GameTag::TAG_SCRIPT_DATA_NUM_1] =
+                std::stoi(values[1].str());
+        }
+    }
+    if (std::regex_search(text, values, tradeableRegex))
+    {
+        card->gameTags[GameTag::TRADEABLE] = 1;
+    }
+    if (std::regex_search(text, values, questlineRegex))
+    {
+        card->gameTags[GameTag::QUESTLINE] = 1;
+    }
+    if (std::regex_search(text, values, infusedRegex))
+    {
+        card->gameTags[GameTag::INFUSED] = 1;
+    }
 }
 }  // namespace RosettaStone::PlayMode

@@ -42,6 +42,15 @@ class CardDefs
     //! \return The card def data that matches \p id.
     static CardDef FindCardDefByID(const std::string_view& id);
 
+    //! Returns true if a CardDef is registered for \p id.
+    //! \param id The ID of the card.
+    //! \return true if the card has a script, false otherwise.
+    static bool HasCardDef(const std::string_view& id);
+
+    //! Returns the number of registered CardDefs.
+    //! \return The number of registered CardDefs.
+    static std::size_t Count();
+
  private:
     //! Constructor: Loads card data (powers and play requirements).
     CardDefs();

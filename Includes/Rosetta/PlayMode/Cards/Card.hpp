@@ -131,6 +131,12 @@ class Card
     //! \return The flag that indicates whether it is collectible.
     bool IsCollectible() const;
 
+    //! Returns true if a CardDef (power script) is registered for this card.
+    //! A card without one plays as a vanilla body: no text, no triggers.
+    //! \return true if the card has a script, false if it is the vanilla
+    //! fallback.
+    bool IsScripted() const;
+
     //! Finds out if this card is in STANDARD set.
     //! \return true if this card is in STANDARD set, and false otherwise.
     bool IsStandardSet() const;
@@ -172,6 +178,12 @@ class Card
     std::string text;
 
     std::map<GameTag, int> gameTags;
+    //! Every tag from CardDefs.xml keyed by Blizzard's numeric enum ID,
+    //! including tags the GameTag enum does not name. Empty for cards.json.
+    std::map<int, int> hsTags;
+    //! Card IDs referenced by \p type="Card" tags in CardDefs.xml
+    //! (e.g. HERO_POWER). Empty for cards.json.
+    std::vector<std::string> referencedCardIDs;
     std::map<PlayReq, int> playRequirements;
     std::vector<std::string> chooseCardIDs;
     std::vector<std::string> entourages;
@@ -186,6 +198,7 @@ class Card
     std::size_t maxAllowedInDeck = 0;
 
     bool mustHaveToTargetToPlay = false;
+    bool scripted = false;
 };
 }  // namespace RosettaStone::PlayMode
 
