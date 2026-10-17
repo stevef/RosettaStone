@@ -5,10 +5,14 @@
 
 #include <Rosetta/PlayMode/Actions/CastSpell.hpp>
 #include <Rosetta/PlayMode/Actions/Choose.hpp>
+
+#include <cstdlib>
+#include <cstring>
 #include <Rosetta/PlayMode/Actions/Copy.hpp>
 #include <Rosetta/PlayMode/Actions/Generic.hpp>
 #include <Rosetta/PlayMode/Actions/Summon.hpp>
 #include <Rosetta/PlayMode/Cards/Cards.hpp>
+#include <Rosetta/PlayMode/Zones/GraveyardZone.hpp>
 #include <Rosetta/PlayMode/Games/Game.hpp>
 #include <Rosetta/PlayMode/Tasks/ITask.hpp>
 #include <Rosetta/PlayMode/Zones/DeckZone.hpp>
@@ -275,6 +279,33 @@ bool ChoicePick(Player* player, int choice)
             }
             break;
         }
+        case ChoiceAction::REWIND:
+        {
+            const auto source = dynamic_cast<Playable*>(choiceVal->source);
+            if (source && playable->card->id == "TIME_000tb")
+            {
+                source->SetGameTag(GameTag::USED_REWIND, 1);
+                // The client casts a copy of "Rewind Timeline" that names the
+                // card (TAG_SCRIPT_DATA_NUM_1 = its entity ID), then the state
+                // is restored and the card replayed; the restore is the
+                // caller's job (Game::pendingRewind).
+                std::map<GameTag, int> tags;
+                tags.emplace(GameTag::TAG_SCRIPT_DATA_NUM_1,
+                             source->GetGameTag(GameTag::ENTITY_ID));
+                Playable* cast =
+                    Entity::GetFromCard(player, playable->card, tags);
+                player->GetGraveyardZone()->Add(cast);
+                player->game->pendingRewind = source;
+            }
+            // both options leave the choice (setaside) for the graveyard
+            for (const int id : choiceVal->choices)
+            {
+                Playable* option = player->game->entityList[id];
+                player->GetSetasideZone()->Remove(option);
+                player->GetGraveyardZone()->Add(option);
+            }
+            break;
+        }
         case ChoiceAction::VULPERA_SCOUNDREL:
         {
             if (playable->card->id == "ULD_209t")
@@ -397,6 +428,32 @@ void CreateChoice(Player* player, Entity* source, ChoiceType type,
     player->choice->source = source;
     player->choice->choices = choices;
     player->choice->depth = 1;
+}
+
+void OfferRewind(Player* player, Playable* source)
+{
+    if (!source || source->GetGameTag(GameTag::REWIND) != 1 ||
+        source->GetGameTag(GameTag::USED_REWIND) != 0 || player->choice)
+    {
+        return;
+    }
+
+    // Switch for the fidelity measurement: the keyword as a no-op.
+    if (const char* off = std::getenv("ROSETTA_DISABLE_KEYWORDS");
+        off && std::strstr(off, "REWIND"))
+    {
+        return;
+    }
+
+    Card* keep = Cards::FindCardByID("TIME_000ta");
+    Card* rewind = Cards::FindCardByID("TIME_000tb");
+    if (keep->id != "TIME_000ta" || rewind->id != "TIME_000tb")
+    {
+        return;  // choice tokens only exist in CardDefs.xml (2025 data)
+    }
+
+    CreateChoiceCards(player, source, ChoiceType::GENERAL,
+                      ChoiceAction::REWIND, { keep, rewind });
 }
 
 void CreateChoiceCards(Player* player, Entity* source, ChoiceType type,

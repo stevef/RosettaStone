@@ -18,6 +18,7 @@
 #include <Rosetta/PlayMode/Models/Minion.hpp>
 #include <Rosetta/PlayMode/Models/Player.hpp>
 #include <Rosetta/PlayMode/Models/Weapon.hpp>
+#include <Rosetta/PlayMode/Tasks/PlayerTasks/ChooseTask.hpp>
 #include <Rosetta/PlayMode/Tasks/PlayerTasks/EndTurnTask.hpp>
 #include <Rosetta/PlayMode/Tasks/PlayerTasks/PlayCardTask.hpp>
 #include <Rosetta/PlayMode/Tasks/PlayerTasks/PlayLocationTask.hpp>
@@ -248,6 +249,39 @@ int main(int argc, char** argv)
     catch (const std::exception& e)
     {
         status = std::string("exception: ") + e.what();
+    }
+
+    // Choices the log resolved inside the block (Discover picks, Rewind's
+    // Keep/Rewind): pick the engine's option with the same card ID, in order.
+    try
+    {
+        for (const auto& chosen : a.value("chosen", json::array()))
+        {
+            if (!actor->choice)
+            {
+                warnings.emplace_back("logged choice but engine offered none: " + chosen.get<std::string>());
+                break;
+            }
+            int pick = -1;
+            for (const int id : actor->choice->choices)
+            {
+                if (game.entityList[id]->card->id == chosen.get<std::string>())
+                {
+                    pick = id;
+                    break;
+                }
+            }
+            if (pick < 0)
+            {
+                warnings.emplace_back("logged choice not among engine options: " + chosen.get<std::string>());
+                break;
+            }
+            game.Process(actor, ChooseTask::Pick(actor, pick));
+        }
+    }
+    catch (const std::exception& e)
+    {
+        status = std::string("exception in choice: ") + e.what();
     }
 
     // Dump Tier A tags per logged entity id

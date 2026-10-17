@@ -77,6 +77,7 @@ enum class ChoiceAction
     TORTOLLAN_PILGRIM,   //!< Tortollan Pilgrim.
     SIAMAT,              //!< Siamat.
     VULPERA_SCOUNDREL,   //!< Vulpera Scoundrel.
+    REWIND,              //!< Rewind: keep or rewind the card's effect (keyword-rules fork).
 };
 }  // namespace RosettaStone
 

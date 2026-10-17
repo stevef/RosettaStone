@@ -169,11 +169,74 @@ void CataclysmCardsGen::AddPriestNonCollect(
 void CataclysmCardsGen::AddRogue(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // ------------------------------------------ SPELL - ROGUE
+    // [CATA_785] Rite of Twilight - COST:2
+    // - Set: CATACLYSM, Rarity: Rare
+    // - Spell School: Shadow
+    // --------------------------------------------------------
+    // Text: <b>Herald</b> {0}. <b>Combo:</b> Deal $3 damage.
+    // --------------------------------------------------------
+    // GameTag:
+    // - HERALD = 1
+    // - COMBO = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
+    cardDef.power.AddComboTask(std::make_shared<HeraldTask>());
+    cardDef.power.AddComboTask(
+        std::make_shared<DamageTask>(EntityType::TARGET, 3, true));
+    cardDef.property.playReqs = PlayReqs{ { PlayReq::REQ_TARGET_FOR_COMBO, 0 } };
+    cards.emplace("CATA_785", cardDef);
 }
 
 void CataclysmCardsGen::AddRogueNonCollect(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // ----------------------------------------- MINION - ROGUE
+    // [CATA_158t] Soldier of Sinestra - COST:1 [ATK:1/HP:1]
+    // - Race: Dragon, Set: CATACLYSM
+    // --------------------------------------------------------
+    // Text: When summoned, get a random spell from another class.
+    //       It costs ({0}) less. <i>Herald twice to upgrade.</i>
+    // --------------------------------------------------------
+    // GameTag:
+    // - TAG_SCRIPT_DATA_NUM_1 = 1
+    // --------------------------------------------------------
+    // "When summoned" = POWER tasks, run by HeraldTask after the summon.
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<CustomTask>(
+        [](Player* player, Entity* source, [[maybe_unused]] Playable* target) {
+            const CardClass own = player->GetHero()->card->GetCardClass();
+            std::vector<Card*> pool;
+            for (Card* card : Cards::GetAllCards())
+            {
+                if (card->IsCollectible() &&
+                    card->GetCardType() == CardType::SPELL &&
+                    card->GetCardClass() != own &&
+                    card->GetCardClass() != CardClass::NEUTRAL)
+                {
+                    pool.emplace_back(card);
+                }
+            }
+            if (pool.empty())
+            {
+                return;
+            }
+            Card* pick = pool[Random::get<std::size_t>(0, pool.size() - 1)];
+            Playable* spell = Entity::GetFromCard(player, pick);
+            if (!Generic::AddCardToHand(player, spell))
+            {
+                return;
+            }
+            const int less = source->GetGameTag(GameTag::TAG_SCRIPT_DATA_NUM_1) *
+                             HeraldTask::Multiplier(player);
+            spell->SetCost(std::max(0, spell->GetCost() - less));
+        }));
+    cards.emplace("CATA_158t", cardDef);
 }
 
 void CataclysmCardsGen::AddShaman(
@@ -189,11 +252,81 @@ void CataclysmCardsGen::AddShamanNonCollect(
 void CataclysmCardsGen::AddWarlock(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // --------------------------------------- MINION - WARLOCK
+    // [CATA_725] Shadowsworn Disciple - COST:2 [ATK:2/HP:1]
+    // - Set: CATACLYSM, Rarity: Common
+    // --------------------------------------------------------
+    // Text: <b>Battlecry:</b> <b>Herald</b> {0}.
+    //       <b>Deathrattle:</b> Restore #3 Health to your hero.
+    // --------------------------------------------------------
+    // GameTag:
+    // - BATTLECRY = 1
+    // - DEATHRATTLE = 1
+    // - HERALD = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
+    cardDef.power.AddDeathrattleTask(
+        std::make_shared<HealTask>(EntityType::HERO, 3));
+    cards.emplace("CATA_725", cardDef);
+
+    // ------------------------------------- LOCATION - WARLOCK
+    // [CATA_492] Shrine of Twilight - COST:4 [HP:2]
+    // - Set: CATACLYSM, Rarity: Rare
+    // --------------------------------------------------------
+    // Text: <b>Herald</b> {0}. Draw a card.
+    // --------------------------------------------------------
+    // GameTag:
+    // - HERALD = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
+    cardDef.power.AddPowerTask(std::make_shared<DrawTask>(1));
+    cards.emplace("CATA_492", cardDef);
 }
 
 void CataclysmCardsGen::AddWarlockNonCollect(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // --------------------------------------- MINION - WARLOCK
+    // [CATA_725t] Soldier of Cho'gall - COST:1 [ATK:1/HP:1]
+    // - Set: CATACLYSM
+    // --------------------------------------------------------
+    // Text: At the end of your turn, destroy the minion to the
+    //       right to gain +{0}/+{0}. <i>Herald twice to upgrade.</i>
+    // --------------------------------------------------------
+    // GameTag:
+    // - TAG_SCRIPT_DATA_NUM_1 = 2
+    // - TRIGGER_VISUAL = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddTrigger(std::make_shared<Trigger>(TriggerType::TURN_END));
+    cardDef.power.GetTrigger()->tasks = { std::make_shared<CustomTask>(
+        [](Player* player, Entity* source, [[maybe_unused]] Playable* target) {
+            const auto self = dynamic_cast<Minion*>(source);
+            if (!self || self->GetZoneType() != ZoneType::PLAY)
+            {
+                return;
+            }
+            const auto field = player->GetFieldZone();
+            const int pos = self->GetZonePosition();
+            if (pos + 1 >= field->GetCount())
+            {
+                return;
+            }
+            Minion* right = (*field)[pos + 1];
+            const int gain = source->GetGameTag(GameTag::TAG_SCRIPT_DATA_NUM_1) *
+                             HeraldTask::Multiplier(player);
+            right->Destroy();
+            player->game->ProcessDestroyAndUpdateAura();
+            self->SetAttack(self->GetAttack() + gain);
+            self->SetBaseHealth(self->GetBaseHealth() + gain);
+        }) };
+    cards.emplace("CATA_725t", cardDef);
 }
 
 void CataclysmCardsGen::AddWarrior(
@@ -215,6 +348,41 @@ void CataclysmCardsGen::AddWarrior(
     cardDef.power.AddPowerTask(
         std::make_shared<AddEnchantmentTask>("CATA_582e", EntityType::HERO));
     cards.emplace("CATA_582", cardDef);
+
+    // --------------------------------------- WEAPON - WARRIOR
+    // [CATA_580] Cataclysmic War Axe - COST:3 [ATK:3/HP:2]
+    // - Set: CATACLYSM, Rarity: Common
+    // --------------------------------------------------------
+    // Text: <b>Battlecry:</b> <b>Herald</b> {0}.
+    // --------------------------------------------------------
+    // GameTag:
+    // - BATTLECRY = 1
+    // - HERALD = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
+    cards.emplace("CATA_580", cardDef);
+
+    // --------------------------------------- MINION - WARRIOR
+    // [CATA_160] Scorching Ravager - COST:4 [ATK:4/HP:3]
+    // - Race: Dragon, Set: CATACLYSM, Rarity: Epic
+    // --------------------------------------------------------
+    // Text: <b>Battlecry:</b> <b>Herald</b> {0}.
+    //       Give the Soldier <b>Rush</b>.
+    // --------------------------------------------------------
+    // GameTag:
+    // - BATTLECRY = 1
+    // - HERALD = 1
+    // --------------------------------------------------------
+    // RefTag:
+    // - RUSH = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
+    // CardDefs.xml has no enchantment entity for this; set the tag directly.
+    cardDef.power.AddPowerTask(
+        std::make_shared<SetGameTagTask>(EntityType::STACK, GameTag::RUSH, 1));
+    cards.emplace("CATA_160", cardDef);
 }
 
 void CataclysmCardsGen::AddWarriorNonCollect(
@@ -234,6 +402,35 @@ void CataclysmCardsGen::AddWarriorNonCollect(
     cardDef.ClearData();
     cardDef.power.AddEnchant(Enchants::GetEnchantFromText("CATA_582e"));
     cards.emplace("CATA_582e", cardDef);
+
+    // --------------------------------------- MINION - WARRIOR
+    // [CATA_580t] Soldier of Ragnaros - COST:1 [ATK:2/HP:1]
+    // - Race: Elemental, Set: CATACLYSM
+    // --------------------------------------------------------
+    // Text: <b>Deathrattle:</b> Deal {0} damage to a random enemy.
+    //       <i>Herald twice to upgrade.</i>
+    // --------------------------------------------------------
+    // GameTag:
+    // - DEATHRATTLE = 1
+    // - TAG_SCRIPT_DATA_NUM_1 = 2
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddDeathrattleTask(std::make_shared<CustomTask>(
+        [](Player* player, Entity* source, [[maybe_unused]] Playable* target) {
+            const int dmg = source->GetGameTag(GameTag::TAG_SCRIPT_DATA_NUM_1) *
+                            HeraldTask::Multiplier(player);
+            std::vector<Playable*> enemies;
+            enemies.emplace_back(player->opponent->GetHero());
+            for (auto& m : player->opponent->GetFieldZone()->GetAll())
+            {
+                enemies.emplace_back(m);
+            }
+            auto* pick = enemies[Random::get<std::size_t>(0, enemies.size() - 1)];
+            Generic::TakeDamageToCharacter(dynamic_cast<Playable*>(source),
+                                           dynamic_cast<Character*>(pick), dmg,
+                                           false);
+        }));
+    cards.emplace("CATA_580t", cardDef);
 }
 
 void CataclysmCardsGen::AddDemonHunter(
@@ -333,9 +530,9 @@ void CataclysmCardsGen::AddNeutral(
     // - HERALD = 1
     // - TAG_SCRIPT_DATA_NUM_1 = 1
     // --------------------------------------------------------
-    // NOTE: Herald has no rules text in CardDefs.xml and no engine support,
-    //       so it is not scripted; {1} is unknown and taken as (1).
+    // NOTE: {1} is unknown and taken as (1). Herald: HeraldTask (keyword-rules).
     cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<HeraldTask>());
     // Deathwing, Worldbreaker (CATA_190h) is a Hero card, so look in hand
     // and deck by ID.
     for (const auto zone : { EntityType::HAND, EntityType::DECK })

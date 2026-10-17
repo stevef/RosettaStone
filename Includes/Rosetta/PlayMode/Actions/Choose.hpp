@@ -40,6 +40,15 @@ void CreateChoice(Player* player, Entity* source, ChoiceType type,
 //! \param choices A container of card to choose.
 void CreateChoiceCards(Player* player, Entity* source, ChoiceType type,
                        ChoiceAction action, const std::vector<Card*>& choices);
+
+//! Rewind (keyword-rules fork): offers "Keep Timeline" / "Rewind Timeline"
+//! (TIME_000ta / TIME_000tb) for a card with Rewind that has not used it.
+//! Rules source: Blizzard, "Warcraft Heroes Past and Future Unite in Across
+//! the Timeways" (news.blizzard.com/en-us/article/24226328): replay a card
+//! with a random effect for another shot; stick with what happened or Rewind.
+//! \param player The player who played the card.
+//! \param source The card with Rewind.
+void OfferRewind(Player* player, Playable* source);
 }  // namespace RosettaStone::PlayMode::Generic
 
 #endif  // ROSETTASTONE_PLAYMODE_CHOOSE_HPP

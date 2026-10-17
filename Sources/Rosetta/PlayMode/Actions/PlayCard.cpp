@@ -187,6 +187,15 @@ void PlayCard(Player* player, Playable* source, Character* target, int fieldPos,
     player->game->taskQueue.EndEvent();
     player->game->ProcessDestroyAndUpdateAura();
 
+    // Rewind (keyword-rules fork): once the card has resolved, offer to keep
+    // or rewind its effect. Skipped while another choice (a Discover from the
+    // card itself) is still open: the real game queues it after that choice.
+    if (const auto spell = dynamic_cast<Spell*>(source);
+        !(spell && spell->IsCountered()))
+    {
+        OfferRewind(player, source);
+    }
+
     // Process echo card
     if (source->HasEcho())
     {
