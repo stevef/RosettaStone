@@ -125,16 +125,21 @@ void AddEnchantment(Card* enchantmentCard, Playable* creator, Entity* target,
         }
     }
 
-    std::shared_ptr<Enchantment> enchantment;
-
-    if (power.GetAura() || power.GetTrigger() ||
-        !power.GetDeathrattleTask().empty())
+    // One Enchantment entity per application, as Power.log records it; plain
+    // stat buffs included (they used to be applied straight to the tags).
+    if (!creator)
     {
-        // Create Enchantment instance only when it is needed.
-        // As an owner entity for auras, triggers or deathrattle tasks.
-        enchantment = Enchantment::GetInstance(creator, enchantmentCard, target,
-                                               num1, num2);
+        // e.g. InvokeTask runs a hero power's tasks with the Player as source:
+        // the hero stands in as the creator entity.
+        const auto targetPlayer = dynamic_cast<Player*>(target);
+        creator = (targetPlayer ? targetPlayer
+                                : dynamic_cast<Playable*>(target)->player)
+                      ->GetHero();
+    }
+    const std::shared_ptr<Enchantment> enchantment =
+        Enchantment::GetInstance(creator, enchantmentCard, target, num1, num2);
 
+    {
         if (const auto aura = power.GetAura(); aura)
         {
             aura->Activate(enchantment.get());
@@ -160,11 +165,6 @@ void AddEnchantment(Card* enchantmentCard, Playable* creator, Entity* target,
 
     const std::size_t idxFirstEffect = target->game->oneTurnEffects.size();
     enchant->ActivateTo(target, num1, num2);
-
-    if (!enchantment)
-    {
-        return;
-    }
 
     const auto& oneTurnEffects = target->game->oneTurnEffects;
     for (std::size_t i = idxFirstEffect; i < oneTurnEffects.size(); ++i)

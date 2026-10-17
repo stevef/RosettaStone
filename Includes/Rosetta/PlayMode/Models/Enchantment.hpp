@@ -60,7 +60,8 @@ class Enchantment : public Playable
     //! \return The resulting enchantment entity.
     static std::shared_ptr<Enchantment> GetInstance(Playable* owner,
                                                     Card* _card, Entity* target,
-                                                    int num1 = 0, int num2 = 0);
+                                                    int num1 = 0, int num2 = 0,
+                                                    int id = -1);
 
     //! Returns the owner of enchantment.
     //! \return the owner of enchantment.

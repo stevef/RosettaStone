@@ -3408,28 +3408,28 @@ TEST_CASE("[Rogue : Minion] - DAL_417 : Heistbaron Togwaggle")
     game.Process(curPlayer, PlayCardTask::Minion(card3));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 72);
+    TestUtils::ChooseNthChoice(game, 1);
 
     curPlayer->SetUsedMana(0);
 
     game.Process(curPlayer, PlayCardTask::Minion(card4));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 77);
+    TestUtils::ChooseNthChoice(game, 2);
 
     curPlayer->SetUsedMana(0);
 
     game.Process(curPlayer, PlayCardTask::Minion(card5));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 82);
+    TestUtils::ChooseNthChoice(game, 3);
 
     curPlayer->SetUsedMana(0);
 
     game.Process(curPlayer, PlayCardTask::Minion(card6));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 87);
+    TestUtils::ChooseNthChoice(game, 4);
 
     curPlayer->SetUsedMana(0);
 
@@ -3465,7 +3465,7 @@ TEST_CASE("[Rogue : Minion] - DAL_417 : Heistbaron Togwaggle")
         CHECK_EQ(card->GetRarity(), Rarity::LEGENDARY);
     }
 
-    Generic::ChoicePick(curPlayer, 88);
+    TestUtils::ChooseNthChoice(game, 1);
     CHECK_EQ(curField.GetCount(), 2);
     CHECK_EQ(curField[0]->card->GetCardType(), CardType::MINION);
     CHECK_EQ(curField[0]->card->GetRarity(), Rarity::LEGENDARY);

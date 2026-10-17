@@ -11,6 +11,7 @@
 #include <Rosetta/PlayMode/Cards/Cards.hpp>
 #include <Rosetta/PlayMode/Games/Game.hpp>
 #include <Rosetta/PlayMode/Games/GameConfig.hpp>
+#include <Rosetta/PlayMode/Models/Enchantment.hpp>
 #include <Rosetta/PlayMode/Models/Entity.hpp>
 #include <Rosetta/PlayMode/Models/Hero.hpp>
 #include <Rosetta/PlayMode/Models/HeroPower.hpp>
@@ -199,6 +200,7 @@ int main(int argc, char** argv)
                     pl->SetGameTag(StrToEnum<GameTag>(name), b["tags"][name].get<int>());
                 }
             }
+            if (const int cr = tagOf(b, "CREATOR", 0)) pl->SetGameTag(GameTag::CREATOR, cr);
         }
         for (const json& c : p["hand"])
         {
@@ -210,17 +212,41 @@ int main(int argc, char** argv)
             {
                 pl->SetCost(c["tags"]["COST"].get<int>());
             }
+            if (const int cr = tagOf(c, "CREATOR", 0)) pl->SetGameTag(GameTag::CREATOR, cr);
         }
     }
 
-    // The action
-    const json& a = slice["action"];
     const auto find = [&](int id) -> Playable* {
         if (id <= 0) return nullptr;
         if (const auto it = idmap.find(id); it != idmap.end()) return dynamic_cast<Playable*>(it->second);
         if (const auto it = game.entityList.find(id + ID_OFFSET); it != game.entityList.end()) return it->second;
         return nullptr;
     };
+    // Enchantment entities that existed before the block (slice "enchantments"
+    // per player): created with their logged IDs, attached to the logged
+    // target, buff already folded into the injected stats so not re-applied.
+    for (int side = 0; side < 2; ++side)
+    {
+        for (const json& en : jp[side].value("enchantments", json::array()))
+        {
+            if (en["card_id"].is_null()) continue;
+            Card* card = Cards::FindCardByID(en["card_id"].get<std::string>());
+            if (card->id != en["card_id"].get<std::string>()) { warnings.emplace_back("enchantment card not found: " + en["card_id"].get<std::string>()); continue; }
+            const int attached = tagOf(en, "ATTACHED", 0), creator = tagOf(en, "CREATOR", 0);
+            Entity* target = find(attached);
+            if (!target) { if (const auto it = idmap.find(attached); it != idmap.end()) target = it->second; }
+            if (!target) { warnings.emplace_back("enchantment target not injected: " + en["card_id"].get<std::string>()); continue; }
+            Playable* owner = find(creator);
+            if (!owner) owner = players[side]->GetHero();
+            auto inst = Enchantment::GetInstance(owner, card, target, 0, 0, en["id"].get<int>() + ID_OFFSET);
+            inst->SetGameTag(GameTag::CREATOR, creator);
+            inst->SetGameTag(GameTag::ATTACHED, attached);
+            inst->SetGameTag(GameTag::ZONE, tagOf(en, "ZONE", 1));
+        }
+    }
+
+    // The action
+    const json& a = slice["action"];
     Playable* source = find(a["entity"].get<int>());
     if (!source)
     {
@@ -264,6 +290,14 @@ int main(int argc, char** argv)
             try { tag = StrToEnum<GameTag>(n); } catch (...) { continue; }
             if (tag == GameTag::INVALID) continue;
             t[n] = e->GetGameTag(tag);
+        }
+        // Entity-valued tags: map engine IDs back to logged IDs.
+        for (const char* ref : { "CREATOR", "ATTACHED" })
+        {
+            if (!t.contains(ref) || t[ref].get<int>() == 0) continue;
+            const int v = t[ref].get<int>();
+            if (v >= ID_OFFSET) t[ref] = v - ID_OFFSET;
+            else if (const auto it = game.entityList.find(v); it != game.entityList.end() && back.contains(it->second) && !game.entityList.contains(v + ID_OFFSET)) t[ref] = back[it->second];
         }
         // Tags the engine keeps as pointers/fields rather than as GameTags.
         if (const auto pl = dynamic_cast<Playable*>(e))

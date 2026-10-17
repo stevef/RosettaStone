@@ -8762,7 +8762,7 @@ TEST_CASE("[Shaman : Minion] - DRG_099 : Kronx Dragonhoof")
     game.Process(curPlayer, PlayCardTask::Minion(card2));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 71);
+    TestUtils::ChooseNthChoice(game, 1);
     CHECK_EQ(curPlayer->GetHero()->GetHealth(), 20);
     CHECK_EQ(opPlayer->GetHero()->GetHealth(), 10);
 
@@ -8771,7 +8771,7 @@ TEST_CASE("[Shaman : Minion] - DRG_099 : Kronx Dragonhoof")
     game.Process(curPlayer, PlayCardTask::Minion(card3));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 76);
+    TestUtils::ChooseNthChoice(game, 2);
     CHECK_EQ(curField.GetCount(), 4);
     CHECK_EQ(curField[3]->GetAttack(), 8);
     CHECK_EQ(curField[3]->GetHealth(), 8);
@@ -8782,7 +8782,7 @@ TEST_CASE("[Shaman : Minion] - DRG_099 : Kronx Dragonhoof")
     game.Process(curPlayer, PlayCardTask::Minion(card4));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 82);
+    TestUtils::ChooseNthChoice(game, 3);
     CHECK_EQ(curField[0]->GetAttack(), 8);
     CHECK_EQ(curField[0]->GetHealth(), 8);
     CHECK_EQ(curField[1]->GetAttack(), 8);
@@ -8799,7 +8799,7 @@ TEST_CASE("[Shaman : Minion] - DRG_099 : Kronx Dragonhoof")
     game.Process(curPlayer, PlayCardTask::Minion(card5));
     CHECK(curPlayer->choice);
 
-    Generic::ChoicePick(curPlayer, 87);
+    TestUtils::ChooseNthChoice(game, 4);
     CHECK_EQ(curField[0]->GetHealth(), 3);
     CHECK_EQ(curField[1]->GetHealth(), 3);
     CHECK_EQ(curField[2]->GetHealth(), 3);

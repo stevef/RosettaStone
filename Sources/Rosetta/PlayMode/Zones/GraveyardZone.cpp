@@ -28,6 +28,9 @@ void GraveyardZone::Add(Playable* entity, int zonePos)
     const int enchantSize = static_cast<int>(enchantments.size());
     for (int i = enchantSize - 1; i >= 0; --i)
     {
+        // Power.log: enchantments of an entity that left play are
+        // REMOVEDFROMGAME, not GRAVEYARD.
+        enchantments[i]->SetZoneType(ZoneType::REMOVEDFROMGAME);
         enchantments[i]->Remove();
     }
 }

@@ -3560,7 +3560,8 @@ TEST_CASE("[Neutral : Minion] - SCH_351 : Jandice Barov")
         CHECK_EQ(cards[1]->dbfID, right->card->dbfID);
 
         TestUtils::ChooseNthChoice(game, 2);
-        CHECK_EQ(left->appliedEnchantments.size(), 0);
+        CHECK_EQ(left->appliedEnchantments.size(), 1);
+        CHECK_EQ(left->appliedEnchantments[0]->card->id, "SCH_351b");
         CHECK_EQ(right->appliedEnchantments.size(), 1);
         CHECK_EQ(right->appliedEnchantments[0]->card->id, "SCH_351a");
 

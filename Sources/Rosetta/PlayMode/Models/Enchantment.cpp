@@ -26,16 +26,24 @@ Enchantment::Enchantment(Player* _player, Card* _card,
 std::shared_ptr<Enchantment> Enchantment::GetInstance(Playable* owner,
                                                       Card* _card,
                                                       Entity* target, int num1,
-                                                      int num2)
+                                                      int num2, int id)
 {
     using enum GameTag;
 
-    const int id = owner->player->game->GetNextID();
+    if (id < 0)
+    {
+        id = owner->player->game->GetNextID();
+    }
 
     std::map<GameTag, int> tags;
     tags[ENTITY_ID] = id;
     tags[CONTROLLER] = owner->player->playerID;
-    tags[ZONE] = std::to_underlying(ZoneType::SETASIDE);
+    // Power.log: an enchantment is an entity in the PLAY zone while it is
+    // attached, with CREATOR = the entity that applied it and ATTACHED = its
+    // target. It goes to GRAVEYARD when it expires (see Remove()).
+    tags[ZONE] = std::to_underlying(ZoneType::PLAY);
+    tags[CREATOR] = owner->GetGameTag(ENTITY_ID);
+    tags[ATTACHED] = target->GetGameTag(ENTITY_ID);
 
     if (num1 > 0)
     {
@@ -51,6 +59,7 @@ std::shared_ptr<Enchantment> Enchantment::GetInstance(Playable* owner,
                                                   owner, target, id);
 
     target->appliedEnchantments.emplace_back(instance);
+    owner->game->entityList.emplace(id, instance.get());
 
     if (_card->gameTags[TAG_ONE_TURN_EFFECT] == 1)
     {
@@ -119,6 +128,14 @@ void Enchantment::SetCapturedCard(Card* _card)
 
 void Enchantment::Remove()
 {
+    // Power.log: an enchantment that expires goes to GRAVEYARD (one whose
+    // target died is sent to REMOVEDFROMGAME by GraveyardZone first).
+    // m_target is not read here: it may already be destroyed.
+    if (GetZoneType() == ZoneType::PLAY)
+    {
+        SetZoneType(ZoneType::GRAVEYARD);
+    }
+
     if (const auto deathrattleTask = card->power.GetDeathrattleTask();
         !deathrattleTask.empty() &&
         m_target->zone->GetType() == ZoneType::GRAVEYARD)
