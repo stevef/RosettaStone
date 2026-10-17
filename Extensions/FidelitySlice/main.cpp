@@ -83,7 +83,13 @@ int main(int argc, char** argv)
             return CardClass::WARRIOR;
         }
         const CardClass c = hero->GetCardClass();
-        return c == CardClass::INVALID || c == CardClass::NEUTRAL ? CardClass::WARRIOR : c;
+        // The engine has no Death Knight hero (Cards::GetHeroCard has no case
+        // for it), so a DK side is started as a Warrior; hero tags are set
+        // from the log afterwards.
+        return c == CardClass::INVALID || c == CardClass::NEUTRAL ||
+                       c == CardClass::DEATHKNIGHT
+                   ? CardClass::WARRIOR
+                   : c;
     };
     config.player1Class = classOf(jp[0]);
     config.player2Class = classOf(jp[1]);
