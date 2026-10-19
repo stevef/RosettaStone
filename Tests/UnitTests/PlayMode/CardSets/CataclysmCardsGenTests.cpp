@@ -8,6 +8,8 @@
 // so every test here needs ROSETTA_CARDDEFS_XML; see REQUIRE_CARDDEFS_XML.
 
 #include <Utils/CardSetHeaders.hpp>
+#include <Rosetta/PlayMode/Tasks/SimpleTasks/HeraldTask.hpp>
+#include <Rosetta/PlayMode/Zones/GraveyardZone.hpp>
 
 // ---------------------------------------- SPELL - WARRIOR
 // [CATA_582] Searing Fissure - COST:2
@@ -392,4 +394,256 @@ TEST_CASE("[Neutral : Minion] - CATA_497 : Ultraxion")
 
     game.Process(curPlayer, PlayCardTask::Minion(card1));
     CHECK_EQ(card2->GetCost(), 9);
+}
+
+// --------------------------------------- MINION - WARLOCK
+// [CATA_725] Shadowsworn Disciple - COST:2 [ATK:2/HP:1]
+// - Set: CATACLYSM, Rarity: Common
+// --------------------------------------------------------
+// Text: <b>Battlecry:</b> <b>Herald</b> {0}.
+//       <b>Deathrattle:</b> Restore #3 Health to your hero.
+// --------------------------------------------------------
+// Keyword test: Herald counts per player, summons the class Soldier to the
+// right of the source, and the Soldier's power doubles after two Heralds.
+TEST_CASE("[Warlock : Minion] - CATA_725 : Shadowsworn Disciple (Herald)")
+{
+    REQUIRE_CARDDEFS_XML();
+
+    GameConfig config;
+    config.player1Class = CardClass::WARLOCK;
+    config.player2Class = CardClass::MAGE;
+    config.startPlayer = PlayerType::PLAYER1;
+    config.doFillDecks = true;
+    config.autoRun = false;
+
+    Game game(config);
+    game.Start();
+    game.ProcessUntil(Step::MAIN_ACTION);
+
+    Player* curPlayer = game.GetCurrentPlayer();
+    Player* opPlayer = game.GetOpponentPlayer();
+    curPlayer->SetTotalMana(10);
+    curPlayer->SetUsedMana(0);
+    opPlayer->SetTotalMana(10);
+    opPlayer->SetUsedMana(0);
+
+    auto& curField = *(curPlayer->GetFieldZone());
+
+    const auto card1 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_725"));
+    const auto card2 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_725"));
+
+    game.Process(curPlayer, PlayCardTask::Minion(card1));
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 1);
+    CHECK_EQ(SimpleTasks::HeraldTask::Multiplier(curPlayer), 1);
+    CHECK_EQ(curField.GetCount(), 2);
+    CHECK_EQ(curField[0]->card->id, "CATA_725");
+    CHECK_EQ(curField[1]->card->id, "CATA_725t");
+    CHECK_EQ(curField[1]->GetAttack(), 1);
+    CHECK_EQ(curField[1]->GetHealth(), 1);
+
+    game.Process(curPlayer, PlayCardTask::Minion(card2));
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 2);
+    CHECK_EQ(SimpleTasks::HeraldTask::Multiplier(curPlayer), 2);
+    CHECK_EQ(opPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 0);
+    CHECK_EQ(curField.GetCount(), 4);
+    // board: Disciple, Soldier, Disciple, Soldier
+    CHECK_EQ(curField[2]->card->id, "CATA_725");
+    CHECK_EQ(curField[3]->card->id, "CATA_725t");
+
+    // Soldier of Cho'gall: at the end of your turn, destroy the minion to the
+    // right to gain +{0}/+{0}; {0} = 2, doubled after two Heralds.
+
+    curPlayer->GetHero()->SetDamage(10);
+    game.Process(curPlayer, EndTurnTask());
+    game.ProcessUntil(Step::MAIN_ACTION);
+    // the first Soldier ate the second Disciple (its deathrattle healed 3)
+    CHECK_EQ(curField.GetCount(), 3);
+    CHECK_EQ(curField[1]->card->id, "CATA_725t");
+    CHECK_EQ(curField[1]->GetAttack(), 1 + 4);
+    CHECK_EQ(curField[1]->GetHealth(), 1 + 4);
+    CHECK_EQ(curPlayer->GetHero()->GetHealth(), 23);
+}
+
+// --------------------------------------- MINION - WARRIOR
+// [CATA_160] Scorching Ravager - COST:4 [ATK:4/HP:3]
+// - Race: Dragon, Set: CATACLYSM, Rarity: Epic
+// --------------------------------------------------------
+// Text: <b>Battlecry:</b> <b>Herald</b> {0}.
+//       Give the Soldier <b>Rush</b>.
+// --------------------------------------------------------
+TEST_CASE("[Warrior : Minion] - CATA_160 : Scorching Ravager")
+{
+    REQUIRE_CARDDEFS_XML();
+
+    GameConfig config;
+    config.player1Class = CardClass::WARRIOR;
+    config.player2Class = CardClass::MAGE;
+    config.startPlayer = PlayerType::PLAYER1;
+    config.doFillDecks = true;
+    config.autoRun = false;
+
+    Game game(config);
+    game.Start();
+    game.ProcessUntil(Step::MAIN_ACTION);
+
+    Player* curPlayer = game.GetCurrentPlayer();
+    Player* opPlayer = game.GetOpponentPlayer();
+    curPlayer->SetTotalMana(10);
+    curPlayer->SetUsedMana(0);
+    opPlayer->SetTotalMana(10);
+    opPlayer->SetUsedMana(0);
+
+    auto& curField = *(curPlayer->GetFieldZone());
+
+    const auto card1 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_160"));
+    game.Process(curPlayer, PlayCardTask::Minion(card1));
+    CHECK_EQ(curField.GetCount(), 2);
+    CHECK_EQ(curField[1]->card->id, "CATA_580t");
+    CHECK_EQ(curField[1]->HasRush(), true);
+    CHECK_EQ(curField[1]->GetAttack(), 2);
+    CHECK_EQ(curField[0]->HasRush(), false);
+
+    // Soldier of Ragnaros: Deathrattle: deal {0} (= 2) damage to a random
+    // enemy; the only enemy is the hero.
+    curField[1]->Destroy();
+    game.ProcessDestroyAndUpdateAura();
+    CHECK_EQ(curField.GetCount(), 1);
+    CHECK_EQ(opPlayer->GetHero()->GetHealth(), 28);
+}
+
+// ------------------------------------------ SPELL - ROGUE
+// [CATA_785] Rite of Twilight - COST:2
+// - Set: CATACLYSM, Rarity: Rare
+// --------------------------------------------------------
+// Text: <b>Herald</b> {0}. <b>Combo:</b> Deal $3 damage.
+// --------------------------------------------------------
+TEST_CASE("[Rogue : Spell] - CATA_785 : Rite of Twilight")
+{
+    REQUIRE_CARDDEFS_XML();
+
+    GameConfig config;
+    config.player1Class = CardClass::ROGUE;
+    config.player2Class = CardClass::MAGE;
+    config.startPlayer = PlayerType::PLAYER1;
+    config.doFillDecks = true;
+    config.autoRun = false;
+
+    Game game(config);
+    game.Start();
+    game.ProcessUntil(Step::MAIN_ACTION);
+
+    Player* curPlayer = game.GetCurrentPlayer();
+    Player* opPlayer = game.GetOpponentPlayer();
+    curPlayer->SetTotalMana(10);
+    curPlayer->SetUsedMana(0);
+    opPlayer->SetTotalMana(10);
+    opPlayer->SetUsedMana(0);
+
+    auto& curField = *(curPlayer->GetFieldZone());
+    auto& curHand = *(curPlayer->GetHandZone());
+
+    const auto card1 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_785"));
+    const auto card2 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_785"));
+
+    // no combo: Herald only
+    game.Process(curPlayer, PlayCardTask::Spell(card1));
+    CHECK_EQ(curField.GetCount(), 1);
+    CHECK_EQ(curField[0]->card->id, "CATA_158t");
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 1);
+    // Soldier of Sinestra: when summoned, get a random spell from another
+    // class
+    const int handNow = curHand.GetCount();
+    CHECK_EQ(curHand[handNow - 1]->card->GetCardType(), CardType::SPELL);
+    CHECK_NE(curHand[handNow - 1]->card->GetCardClass(), CardClass::ROGUE);
+    CHECK_NE(curHand[handNow - 1]->card->GetCardClass(), CardClass::NEUTRAL);
+
+    // combo: Herald, then 3 damage to the target
+    game.Process(curPlayer,
+                 PlayCardTask::SpellTarget(card2, opPlayer->GetHero()));
+    CHECK_EQ(curField.GetCount(), 2);
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 2);
+    CHECK_EQ(opPlayer->GetHero()->GetHealth(), 27);
+}
+
+// ------------------------------------- LOCATION - WARLOCK
+// [CATA_492] Shrine of Twilight - COST:4 [HP:2]
+// - Set: CATACLYSM, Rarity: Rare
+// --------------------------------------------------------
+// Text: <b>Herald</b> {0}. Draw a card.
+// --------------------------------------------------------
+TEST_CASE("[Warlock : Location] - CATA_492 : Shrine of Twilight")
+{
+    REQUIRE_CARDDEFS_XML();
+
+    GameConfig config;
+    config.player1Class = CardClass::WARLOCK;
+    config.player2Class = CardClass::MAGE;
+    config.startPlayer = PlayerType::PLAYER1;
+    config.doFillDecks = true;
+    config.autoRun = false;
+
+    Game game(config);
+    game.Start();
+    game.ProcessUntil(Step::MAIN_ACTION);
+
+    Player* curPlayer = game.GetCurrentPlayer();
+    Player* opPlayer = game.GetOpponentPlayer();
+    curPlayer->SetTotalMana(10);
+    curPlayer->SetUsedMana(0);
+    opPlayer->SetTotalMana(10);
+    opPlayer->SetUsedMana(0);
+
+    auto& curField = *(curPlayer->GetFieldZone());
+    auto& curHand = *(curPlayer->GetHandZone());
+
+    const auto card1 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_492"));
+    game.Process(curPlayer, PlayCardTask::Location(card1));
+    const auto location = dynamic_cast<Location*>(card1);
+    CHECK_EQ(curField.GetCount(), 1);
+    // the engine puts a new location on cooldown; use it next turn
+    game.Process(curPlayer, EndTurnTask());
+    game.ProcessUntil(Step::MAIN_ACTION);
+    game.Process(opPlayer, EndTurnTask());
+    game.ProcessUntil(Step::MAIN_ACTION);
+    const int handBefore = curHand.GetCount();
+    game.Process(curPlayer, PlayLocationTask(location));
+    CHECK_EQ(curField.GetCount(), 2);
+    CHECK_EQ(curField.GetMinions()[0]->card->id, "CATA_725t");
+    CHECK_EQ(curHand.GetCount(), handBefore + 1);
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 1);
+}
+
+// Herald in a class with no Soldier: counts, summons nothing.
+TEST_CASE("[Neutral : Minion] - CATA_497 : Ultraxion (Herald, Mage)")
+{
+    REQUIRE_CARDDEFS_XML();
+
+    GameConfig config;
+    config.player1Class = CardClass::MAGE;
+    config.player2Class = CardClass::WARRIOR;
+    config.startPlayer = PlayerType::PLAYER1;
+    config.doFillDecks = true;
+    config.autoRun = false;
+
+    Game game(config);
+    game.Start();
+    game.ProcessUntil(Step::MAIN_ACTION);
+
+    Player* curPlayer = game.GetCurrentPlayer();
+    curPlayer->SetTotalMana(10);
+    curPlayer->SetUsedMana(0);
+
+    auto& curField = *(curPlayer->GetFieldZone());
+    const auto card1 = Generic::DrawCard(
+        curPlayer, Cards::FindCardByID("CATA_497"));
+    game.Process(curPlayer, PlayCardTask::Minion(card1));
+    CHECK_EQ(curField.GetCount(), 1);
+    CHECK_EQ(curPlayer->GetGameTag(GameTag::HERALD_COLOSSAL_AMOUNT), 1);
+    CHECK_EQ(SimpleTasks::HeraldTask::SoldierCardID(curPlayer), nullptr);
 }

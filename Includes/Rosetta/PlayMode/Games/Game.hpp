@@ -204,6 +204,15 @@ class Game
     TriggerManager triggerManager;
     std::unique_ptr<EventMetaData> currentEventData;
 
+    //! Rewind (keyword-rules fork): set when the player picks "Rewind
+    //! Timeline" for this card. The real game restores the whole game state
+    //! to just before the play and plays the card again (GAME_RESET block in
+    //! Power.log). This engine has no game snapshot, so the caller that owns
+    //! the action history replays the prefix and the card; see
+    //! research/keyword-rules/findings.md.
+    //! ponytail: no in-engine undo; a Game deep copy is the upgrade path.
+    Playable* pendingRewind = nullptr;
+
     std::vector<IAura*> auras;
     std::vector<std::shared_ptr<Trigger>> triggers;
     std::vector<std::pair<Entity*, std::shared_ptr<IEffect>>> oneTurnEffects;

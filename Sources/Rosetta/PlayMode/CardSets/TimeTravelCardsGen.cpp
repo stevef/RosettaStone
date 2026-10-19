@@ -40,6 +40,41 @@ void TimeTravelCardsGen::AddHunterNonCollect(
 
 void TimeTravelCardsGen::AddMage(std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // ------------------------------------------- SPELL - MAGE
+    // [TIME_000] Semi-Stable Portal - COST:2
+    // - Set: TIME_TRAVEL, Rarity: Rare
+    // - Spell School: Arcane
+    // --------------------------------------------------------
+    // Text: <b>Rewind</b> Add a random minion to your hand.
+    //       It costs (3) less.
+    // --------------------------------------------------------
+    // GameTag:
+    // - REWIND = 1
+    // --------------------------------------------------------
+    // Rewind itself is generic: Generic::OfferRewind after any REWIND card.
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<CustomTask>(
+        [](Player* player, [[maybe_unused]] Entity* source,
+           [[maybe_unused]] Playable* target) {
+            std::vector<Card*> pool;
+            for (Card* card : Cards::GetAllCards())
+            {
+                if (card->IsCollectible() &&
+                    card->GetCardType() == CardType::MINION)
+                {
+                    pool.emplace_back(card);
+                }
+            }
+            Card* pick = pool[Random::get<std::size_t>(0, pool.size() - 1)];
+            Playable* minion = Entity::GetFromCard(player, pick);
+            if (Generic::AddCardToHand(player, minion))
+            {
+                minion->SetCost(std::max(0, minion->GetCost() - 3));
+            }
+        }));
+    cards.emplace("TIME_000", cardDef);
 }
 
 void TimeTravelCardsGen::AddMageNonCollect(
@@ -288,6 +323,27 @@ void TimeTravelCardsGen::AddPriestNonCollect(
 void TimeTravelCardsGen::AddRogue(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // ------------------------------------------ SPELL - ROGUE
+    // [TIME_001] Chrono Daggers - COST:3
+    // - Set: TIME_TRAVEL, Rarity: Rare
+    // --------------------------------------------------------
+    // Text: <b>Rewind</b> Throw 3 knives at random enemies
+    //       that deal $2 damage each.
+    // --------------------------------------------------------
+    // GameTag:
+    // - REWIND = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    for (int i = 0; i < 3; ++i)
+    {
+        cardDef.power.AddPowerTask(
+            std::make_shared<RandomTask>(EntityType::ENEMIES, 1));
+        cardDef.power.AddPowerTask(
+            std::make_shared<DamageTask>(EntityType::STACK, 2, true));
+    }
+    cards.emplace("TIME_001", cardDef);
 }
 
 void TimeTravelCardsGen::AddRogueNonCollect(
@@ -298,6 +354,55 @@ void TimeTravelCardsGen::AddRogueNonCollect(
 void TimeTravelCardsGen::AddShaman(
     std::map<std::string, CardDef>& cards)
 {
+    CardDef cardDef;
+
+    // ----------------------------------------- SPELL - SHAMAN
+    // [TIME_014] Instant Multiverse - COST:6
+    // - Set: TIME_TRAVEL, Rarity: Epic
+    // --------------------------------------------------------
+    // Text: <b>Rewind</b> Summon 12 Mana worth of random minions.
+    //       <b>Overload:</b> (3)
+    // --------------------------------------------------------
+    // GameTag:
+    // - REWIND = 1
+    // - OVERLOAD = 3
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<CustomTask>(
+        [](Player* player, Entity* source, [[maybe_unused]] Playable* target) {
+            std::vector<Card*> pool;
+            for (Card* card : Cards::GetAllCards())
+            {
+                if (card->IsCollectible() &&
+                    card->GetCardType() == CardType::MINION &&
+                    card->GetCost() >= 1)
+                {
+                    pool.emplace_back(card);
+                }
+            }
+            int left = 12;
+            while (left > 0 && !player->GetFieldZone()->IsFull())
+            {
+                std::vector<Card*> fit;
+                for (Card* card : pool)
+                {
+                    if (card->GetCost() <= left)
+                    {
+                        fit.emplace_back(card);
+                    }
+                }
+                if (fit.empty())
+                {
+                    break;
+                }
+                Card* pick = fit[Random::get<std::size_t>(0, fit.size() - 1)];
+                left -= pick->GetCost();
+                Generic::Summon(dynamic_cast<Minion*>(
+                                    Entity::GetFromCard(player, pick)),
+                                -1, source);
+            }
+        }));
+    cards.emplace("TIME_014", cardDef);
 }
 
 void TimeTravelCardsGen::AddShamanNonCollect(
@@ -320,6 +425,44 @@ void TimeTravelCardsGen::AddWarrior(
 {
     CardDef cardDef;
 
+    // --------------------------------------- MINION - WARRIOR
+    // [TIME_034] Stadium Announcer - COST:4 [ATK:3/HP:3]
+    // - Race: Dragon, Set: TIME_TRAVEL, Rarity: Rare
+    // --------------------------------------------------------
+    // Text: <b>Rewind</b> <b>Battlecry:</b> Both players equip
+    //       a random weapon. Give yours +1/+1.
+    // --------------------------------------------------------
+    // GameTag:
+    // - BATTLECRY = 1
+    // - REWIND = 1
+    // --------------------------------------------------------
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(std::make_shared<CustomTask>(
+        [](Player* player, [[maybe_unused]] Entity* source,
+           [[maybe_unused]] Playable* target) {
+            std::vector<Card*> pool;
+            for (Card* card : Cards::GetAllCards())
+            {
+                if (card->IsCollectible() &&
+                    card->GetCardType() == CardType::WEAPON)
+                {
+                    pool.emplace_back(card);
+                }
+            }
+            for (Player* p : { player, player->opponent })
+            {
+                Card* pick = pool[Random::get<std::size_t>(0, pool.size() - 1)];
+                const auto weapon =
+                    dynamic_cast<Weapon*>(Entity::GetFromCard(p, pick));
+                p->GetHero()->AddWeapon(*weapon);
+                if (p == player)
+                {
+                    weapon->SetAttack(weapon->GetAttack() + 1);
+                    weapon->SetDurability(weapon->GetDurability() + 1);
+                }
+            }
+        }));
+    cards.emplace("TIME_034", cardDef);
     // ---------------------------------------- SPELL - WARRIOR
     // [TIME_715] For Glory! - COST:5
     // - Set: TIME_TRAVEL, Rarity: Common
@@ -356,6 +499,24 @@ void TimeTravelCardsGen::AddNeutral(
 {
     CardDef cardDef;
 
+    // ----------------------------------- SPELL - DEATHKNIGHT
+    // [TIME_610] Shadows of Yesterday - COST:6
+    // - Set: TIME_TRAVEL, Rarity: Rare
+    // - Spell School: Shadow
+    // --------------------------------------------------------
+    // Text: <b>Rewind</b> Summon four 3/2 Shades.
+    //       They each gain two random <b>Bonus Effects</b>.
+    // --------------------------------------------------------
+    // GameTag:
+    // - REWIND = 1
+    // --------------------------------------------------------
+    // PARTIAL: "Bonus Effects" is a keyword with no engine support; the
+    // Shades are summoned plain. Registered here because the generator has
+    // no Death Knight section.
+    cardDef.ClearData();
+    cardDef.power.AddPowerTask(
+        std::make_shared<SummonTask>("TIME_610t2", 4, SummonSide::SPELL));
+    cards.emplace("TIME_610", cardDef);
     // --------------------------------------- MINION - NEUTRAL
     // [END_036] Morchie - COST:4 [ATK:3/HP:6]
     // - Set: TIME_TRAVEL, Rarity: Legendary

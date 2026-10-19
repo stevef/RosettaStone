@@ -243,6 +243,7 @@
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/HealFullTask.hpp>
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/HealNumberTask.hpp>
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/HealTask.hpp>
+#include <Rosetta/PlayMode/Tasks/SimpleTasks/HeraldTask.hpp>
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/IncludeAdjacentTask.hpp>
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/IncludeTask.hpp>
 #include <Rosetta/PlayMode/Tasks/SimpleTasks/InvokeTask.hpp>
